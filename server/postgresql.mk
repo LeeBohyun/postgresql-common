@@ -201,7 +201,7 @@ override_dh_auto_install-arch:
 	$(MAKE) -C build/config install DESTDIR=$(CURDIR)/debian/tmp
 	$(MAKE) -C build/contrib install DESTDIR=$(CURDIR)/debian/tmp
 	mkdir -p debian/postgresql-server-dev-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib
-	install -m755 build/src/test/regress/regress.so $(CURDIR)/debian/postgresql-server-dev-$(MAJOR_VER)/usr/lib/postgresql/$(MAJOR_VER)/lib
+	install -m755 build/src/test/regress/regress.so $(CURDIR)/debian/postgresql-server-dev-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib
 	# move SPI examples into server package (they wouldn't be in the doc package in an -A build)
 	mkdir -p debian/postgresql-$(MAJOR_PKG)/usr/share/doc/postgresql-$(MAJOR_VER)
 	mv debian/tmp/usr/share/doc/postgresql-doc-$(MAJOR_VER)/extension debian/postgresql-$(MAJOR_PKG)/usr/share/doc/postgresql-$(MAJOR_VER)/examples
