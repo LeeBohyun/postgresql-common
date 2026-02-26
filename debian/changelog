@@ -1,8 +1,8 @@
-postgresql-common (290) UNRELEASED; urgency=medium
+postgresql-common (290) unstable; urgency=medium
 
   * t/090_multicluster.t: Use LANG=C to un-confuse rust-coreutils' sort.
 
- -- Christoph Berg <myon@debian.org>  Thu, 19 Feb 2026 11:57:57 +0100
+ -- Christoph Berg <myon@debian.org>  Thu, 26 Feb 2026 12:04:54 +0100
 
 postgresql-common (289) unstable; urgency=medium
 
