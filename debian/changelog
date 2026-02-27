@@ -1,3 +1,9 @@
+postgresql-common (291) UNRELEASED; urgency=medium
+
+  * Ship doc/postgresql-debian-packaging.md in postgresql-common-dev.
+
+ -- Christoph Berg <myon@debian.org>  Fri, 27 Feb 2026 15:38:34 +0100
+
 postgresql-common (290) unstable; urgency=medium
 
   * t/090_multicluster.t: Use LANG=C to un-confuse rust-coreutils' sort.
