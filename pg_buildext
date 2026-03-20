@@ -168,22 +168,26 @@ installcheck() {
 	[ -f $vtarget/Makefile ] || makefile="-f $srcdir/Makefile"
         if ! pg_virtualenv ${PKGARGS:-} ${PG_VIRTUALENV_ARGS:-} -v $1 \
 	    make -C $vtarget ${makefile:-} installcheck ${DESTDIR:-} \
-                PG_CONFIG="$PG_CONFIG" VPATH="$srcdir" USE_PGXS=1 \
+                PG_CONFIG="$PG_CONFIG" VPATH="$srcdir" subdir="$vtarget" USE_PGXS=1 \
                 PROVE_FLAGS=--verbose ${MAKEVARS:-}; then
-	    if [ -r $vtarget/regression.diffs ]; then
-		echo "**** $vtarget/regression.diffs ****"
-		cat $vtarget/regression.diffs
-	    fi
+            for log in $vtarget/regression.diffs $vtarget/output_iso/regression.diffs; do
+                if [ -r $log ]; then
+                    echo "**** $log ****"
+                    cat $log
+                fi
+            done
 	    return 1
 	fi
     else
         if ! pg_virtualenv ${PKGARGS:-} ${PG_VIRTUALENV_ARGS:-} -v $1 \
-            make installcheck ${DESTDIR:-} PG_CONFIG="$PG_CONFIG" USE_PGXS=1 \
+            make installcheck ${DESTDIR:-} PG_CONFIG="$PG_CONFIG" subdir="$PWD" USE_PGXS=1 \
                 PROVE_FLAGS=--verbose ${MAKEVARS:-}; then
-	    if [ -r regression.diffs ]; then
-		echo "**** regression.diffs ****"
-		cat regression.diffs
-	    fi
+            for log in regression.diffs output_iso/regression.diffs; do
+                if [ -r $log ]; then
+                    echo "**** $log ****"
+                    cat $log
+                fi
+            done
 	    return 1
 	fi
         # since we are in the top-level directory, clean up behind us
