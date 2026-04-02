@@ -22,7 +22,7 @@ foreach my $v (@MAJORS) {
 
     program_ok 'root', "pg_createcluster $v main --start", 0;
 
-    my $jit_default = $v == '11' ? 'off' : 'on';
+    my $jit_default = ($v == 11 or $v >= 19) ? 'off' : 'on';
     like_program_out 'postgres', "psql -Xatc 'show jit'", 0, qr/$jit_default/, "JIT is $jit_default by default";
     unlike_program_out 'postgres', "psql -c 'explain (analyze) select count(*) from pg_class'", 0, qr/JIT/,
         "No JIT on cheap query";
