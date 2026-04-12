@@ -252,8 +252,8 @@ override_dh_install-arch:
 	       debian/postgresql-client-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/pgxs/src/Makefile.global
 
 	# these are shipped in the pl packages
-	bash -c "rm -v debian/postgresql-$(MAJOR_PKG)/usr/share/postgresql/$(MAJOR_VER)/extension/{plperl,plpython,pltcl,*_pl}*"
-	bash -c "rm -v debian/postgresql-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/{plperl,plpython,pltcl,*_pl}*"
+	bash -c "rm -v debian/postgresql-$(MAJOR_PKG)/usr/share/postgresql/$(MAJOR_VER)/extension/*{plperl,plpython,pltcl}*"
+	bash -c "rm -v debian/postgresql-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/*{plperl,plpython,pltcl}*"
 	bash -c "rm -rfv debian/postgresql-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/bitcode/*{plperl,plpython,pltcl}*"
 ifeq ($(call version_ge,18),y)
 	# shipped in the -jit package
