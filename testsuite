@@ -88,14 +88,20 @@ if [ "${INSTALL:-}" ] && [ -z "${UNSHARED:-}" ]; then
                     postgresql-doc-$v$PG_FLAVOR
             done
             apt-get install -y \
+                build-essential \
                 debhelper \
+                fakeroot \
+                hunspell-en-us \
+                iproute2 \
                 libecpg-dev \
                 locales-all \
-                postgresql-common-dev \
-                procps systemd \
+                logrotate \
                 netcat-openbsd \
-                hunspell-en-us \
-                gcc
+                perl \
+                postgresql-common-dev \
+                postgresql-doc \
+                procps \
+                systemd
         ;;
         redhat|centos)
             for v in $PG_VERSIONS; do
