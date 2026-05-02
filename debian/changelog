@@ -6,6 +6,7 @@ postgresql-common (294) UNRELEASED; urgency=medium
 
   [ Luca Boccassi ]
   * pg_createcluster: use 1000 as system uid threshold.
+  * Install and use sysusers.d/tmpfiles.d config files.
 
  -- Christoph Berg <myon@debian.org>  Thu, 13 Aug 2026 22:44:32 +0200
 
