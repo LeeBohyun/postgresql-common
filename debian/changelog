@@ -1,7 +1,11 @@
 postgresql-common (294) UNRELEASED; urgency=medium
 
+  [ Christoph Berg ]
   * Disable plperl plpython pltcl tests on 8.x/9.x.
   * server/postgresql.mk: Add noperl and notcl build profiles.
+
+  [ Luca Boccassi ]
+  * pg_createcluster: use 1000 as system uid threshold.
 
  -- Christoph Berg <myon@debian.org>  Thu, 13 Aug 2026 22:44:32 +0200
 

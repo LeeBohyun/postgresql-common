@@ -436,7 +436,7 @@ if (! -e $real_logfile) {
 }
 chmod 0640, $real_logfile;
 my $g;
-if ($owneruid < 500) {
+if ($owneruid < 1000) {
     $g = (getgrnam 'adm')[2];
 } else {
     $g = $ownergid;
