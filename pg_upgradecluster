@@ -249,6 +249,7 @@ sub adapt_conffiles {
 
     if ($newversion >= '19') {
         $deprecate->(\%c, 'escape_string_warning', 'standard_conforming_strings now always on');
+        $rename->(\%c, 'io_workers', 'io_max_workers');
     }
 }
 

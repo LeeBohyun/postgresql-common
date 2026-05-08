@@ -1,5 +1,6 @@
 postgresql-common (291) UNRELEASED; urgency=medium
 
+  * pg_upgradecluster: Rename io_workers to io_max_workers in PG19.
   * Ship doc/postgresql-debian-packaging.md in postgresql-common-dev.
   * pg_buildext: Show output_iso/regression.diffs on test failure.
   * server/postgresql.mk: Don't delete pg_plan_advice.so in PG 19.
