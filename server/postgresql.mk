@@ -167,6 +167,12 @@ else
   TEST_FAIL_COMMAND = exit 1
 endif
 
+# hurd is still mostly not SMP, so frequently freezes if more than 3 regression
+# tests are run at the same time
+ifneq ($(filter hurd%,$(DEB_HOST_ARCH)),)
+  export MAX_CONNECTIONS=3
+endif
+
 # recipes
 
 %:
