@@ -1,0 +1,12 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+tab_width = 8
+insert_final_newline = true
+
+[{Makefile,rules}]
+indent_style = tab
+indent_size = tab
+tab_width = 8
