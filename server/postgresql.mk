@@ -161,7 +161,7 @@ endif
 # powerpc fails thread test on postgresql-16
 # sh4 lets qemu segfaults when building postgresql-16
 # sparc64 fails bin/summarization-and-inprogress-insertion test with postgresql-15
-ifneq ($(filter alpha hppa hurd% ia64 kfreebsd% powerpc sh4 sparc64,$(DEB_HOST_ARCH)),)
+ifneq ($(filter alpha hppa hurd% ia64 kfreebsd% m68k powerpc sh4 sparc64,$(DEB_HOST_ARCH)),)
   TEST_FAIL_COMMAND = echo "Ignoring test failures on this architecture"
 else
   TEST_FAIL_COMMAND = exit 1

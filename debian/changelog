@@ -4,6 +4,7 @@ postgresql-common (291) UNRELEASED; urgency=medium
   * Ship doc/postgresql-debian-packaging.md in postgresql-common-dev.
   * pg_buildext: Show output_iso/regression.diffs on test failure.
   * server/postgresql.mk: Don't delete pg_plan_advice.so in PG 19.
+  * server/postgresql.mk: Ignore test failures in m68k. (Closes: #1136156)
   * t/027_jit.t: JIT is off by default in PG 19.
 
  -- Christoph Berg <myon@debian.org>  Fri, 27 Feb 2026 15:38:34 +0100
