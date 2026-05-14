@@ -1,4 +1,4 @@
-postgresql-common (291) UNRELEASED; urgency=medium
+postgresql-common (291) unstable; urgency=medium
 
   * pg_upgradecluster: Rename io_workers to io_max_workers in PG19.
   * Ship doc/postgresql-debian-packaging.md in postgresql-common-dev.
@@ -9,7 +9,7 @@ postgresql-common (291) UNRELEASED; urgency=medium
     hurd.
   * t/027_jit.t: JIT is off by default in PG 19.
 
- -- Christoph Berg <myon@debian.org>  Fri, 27 Feb 2026 15:38:34 +0100
+ -- Christoph Berg <myon@debian.org>  Thu, 14 May 2026 12:30:37 +0200
 
 postgresql-common (290) unstable; urgency=medium
 
