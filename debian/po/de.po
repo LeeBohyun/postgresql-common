@@ -21,7 +21,7 @@ msgstr ""
 #. Description
 #: ../postgresql.templates:1001
 msgid "Upgrade PostgreSQL cluster ${oldversion}/main to ${newversion}?"
-msgstr "PostgreSQL-Cluster ${oldversion}/main auf ${newversion) aktualisieren?"
+msgstr "PostgreSQL-Cluster ${oldversion}/main auf ${newversion} aktualisieren?"
 
 #. Type: boolean
 #. Description
@@ -50,7 +50,7 @@ msgid ""
 "Once the upgraded cluster has been validated to work, drop the old cluster "
 "using the command:"
 msgstr ""
-"Sobald die Funktionsfähigkeit des aktualisierten Clusters bestätigt ist, kann der"
+"Sobald die Funktionsfähigkeit des aktualisierten Clusters bestätigt ist, kann der "
 "alte Cluster entfernt werden durch den Befehl:"
 
 #. Type: note

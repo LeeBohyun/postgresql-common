@@ -1,3 +1,10 @@
+postgresql-common (292) UNRELEASED; urgency=medium
+
+  * Fix two typos in de.po. Thanks Helge Kreutzmann for spotting!
+    (Closes: #1136946)
+
+ -- Christoph Berg <myon@debian.org>  Sun, 17 May 2026 18:31:40 -0700
+
 postgresql-common (291) unstable; urgency=medium
 
   * pg_upgradecluster: Rename io_workers to io_max_workers in PG19.
