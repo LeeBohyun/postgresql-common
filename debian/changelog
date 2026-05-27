@@ -2,6 +2,7 @@ postgresql-common (292) UNRELEASED; urgency=medium
 
   * Fix two typos in de.po. Thanks Helge Kreutzmann for spotting!
     (Closes: #1136946)
+  * postgresql.config: Avoid error when pg_lsclusters is not installed yet.
 
  -- Christoph Berg <myon@debian.org>  Sun, 17 May 2026 18:31:40 -0700
 
