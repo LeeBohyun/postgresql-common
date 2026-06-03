@@ -1,4 +1,4 @@
-postgresql-common (292) UNRELEASED; urgency=medium
+postgresql-common (292) unstable; urgency=medium
 
   * Fix two typos in de.po. Thanks Helge Kreutzmann for spotting!
     (Closes: #1136946)
@@ -6,7 +6,7 @@ postgresql-common (292) UNRELEASED; urgency=medium
   * pg_virtualenv: Set PG_TEST_INITDB_EXTRA_OPTS when -p is passed so TAP
     tests also know about the file locations.
 
- -- Christoph Berg <myon@debian.org>  Sun, 17 May 2026 18:31:40 -0700
+ -- Christoph Berg <myon@debian.org>  Wed, 03 Jun 2026 19:51:24 +0200
 
 postgresql-common (291) unstable; urgency=medium
 

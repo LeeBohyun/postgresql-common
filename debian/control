@@ -6,7 +6,7 @@ Uploaders:
  Martin Pitt <mpitt@debian.org>,
  Christoph Berg <myon@debian.org>,
  Peter Eisentraut <petere@debian.org>,
-Standards-Version: 4.7.2
+Standards-Version: 4.7.4
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/postgresql/postgresql-common.git
 Vcs-Browser: https://salsa.debian.org/postgresql/postgresql-common
