@@ -189,13 +189,26 @@ fi
 for v in $PG_VERSIONS; do
     # create temporary cluster
     if [ "${PACKAGE:-}" ]; then
+        if [ ${NONROOT:-} ]; then
+            extra_config="$WORKDIR/regress.conf"
+        else
+            extra_config="/etc/postgresql/$v/regress/regress.conf"
+        fi
         case $v in
             18|19|[2-7]*) # find extension using extension_control_path
-                PKGARGS="--pgoption extension_control_path=$PWD/debian/$PACKAGE/usr/share/postgresql/$v:\$system --pgoption dynamic_library_path=$PWD/debian/$PACKAGE/usr/lib/postgresql/$v/lib:/usr/lib/postgresql/$v/lib"
+                PKGARGS="--pgoption include=$extra_config"
+                cat >$extra_config <<-EOF
+			extension_control_path='$PWD/debian/$PACKAGE/usr/share/postgresql/$v:\$system'
+			dynamic_library_path='$PWD/debian/$PACKAGE/usr/lib/postgresql/$v/lib:/usr/lib/postgresql/$v/lib'
+			EOF
                 ;;
             *) # older versions have a Debian-specific patch
                 if grep -q 'extension_destdir' /usr/share/postgresql/$v/postgresql.conf.sample; then
-                    PKGARGS="--pgoption extension_destdir=$PWD/debian/$PACKAGE --pgoption dynamic_library_path=$PWD/debian/$PACKAGE/usr/lib/postgresql/$v/lib:/usr/lib/postgresql/$v/lib"
+                    PKGARGS="--pgoption include=$extra_config"
+                    cat >$extra_config <<-EOF
+			extension_destdir='$PWD/debian/$PACKAGE'
+			dynamic_library_path='$PWD/debian/$PACKAGE/usr/lib/postgresql/$v/lib:/usr/lib/postgresql/$v/lib'
+			EOF
                 else
                     echo "$0: This PostgreSQL $v installation does not support 'extension_destdir', skipping this version"
                     [ "$PG_VERSIONS" = "$v" ] && exit 0 # only one version requested
@@ -203,6 +216,8 @@ for v in $PG_VERSIONS; do
                 fi
                 ;;
         esac
+        # tell regress and tap tests that recreate new temp instances to use the new config
+        export PG_TEST_INITDB_EXTRA_OPTS="-c include=$extra_config"
     fi
     # we chdir to / so programs don't throw "could not change directory to ..."
     (
