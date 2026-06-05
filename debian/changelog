@@ -1,3 +1,9 @@
+postgresql-common (293) UNRELEASED; urgency=medium
+
+  * pg_virtualenv: Set EXTRA_REGRESS_OPTS for pg_regress --temp-instance runs.
+
+ -- Christoph Berg <myon@debian.org>  Fri, 05 Jun 2026 14:34:36 +0200
+
 postgresql-common (292) unstable; urgency=medium
 
   * Fix two typos in de.po. Thanks Helge Kreutzmann for spotting!

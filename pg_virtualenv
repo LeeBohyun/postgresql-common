@@ -217,6 +217,7 @@ for v in $PG_VERSIONS; do
                 ;;
         esac
         # tell regress and tap tests that recreate new temp instances to use the new config
+        export EXTRA_REGRESS_OPTS="--temp-config=$extra_config"
         export PG_TEST_INITDB_EXTRA_OPTS="-c include=$extra_config"
     fi
     # we chdir to / so programs don't throw "could not change directory to ..."
