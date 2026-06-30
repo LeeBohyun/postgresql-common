@@ -61,7 +61,7 @@ for my $pg_config (@pg_configs) {
         $version = $ALL_MAJORS[-1];
     } else { # pg_config.libpq-dev should point at postgresql-server-dev-$(version of libpq-dev)
         my $libpqdev_version = package_version "libpq-dev";
-        $libpqdev_version =~ /^([89].\d|1.)/ or die "could not determine libpq-dev version";
+        $libpqdev_version =~ /^([89].\d|[1-7].)/ or die "could not determine libpq-dev version";
         $version = $1;
     }
     note "checking $pg_config output (should behave like version $version)";
