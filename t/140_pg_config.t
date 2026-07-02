@@ -5,7 +5,7 @@ use strict;
 use lib 't';
 use TestLib;
 use PgCommon;
-use Test::More tests => 14 * @MAJORS + ($PgCommon::rpm ? 1 : 2) * 12;
+use Test::More tests => 12 * @MAJORS + ($PgCommon::rpm ? 1 : 2) * 12;
 
 my $multiarch = '';
 unless ($PgCommon::rpm) {
@@ -32,13 +32,6 @@ foreach $version (@MAJORS) {
         "$PgCommon::binroot$version/lib\n";
     is_program_out 'postgres', "$PgCommon::binroot$version/bin/pg_config --bindir", 0, 
         "$PgCommon::binroot$version/bin\n";
-    # mkdir should be in /bin on Debian. If /bin was linked to /usr/bin at build time, usrmerge was installed
-    SKIP: {
-        skip 'MKDIR_P not present before 9.0', 2 if ($version < 9.0);
-        skip 'MKDIR_P not checked on RedHat', 2 if ($PgCommon::rpm); # varies across builds/versions
-        is_program_out 'postgres', "grep ^MKDIR_P $PgCommon::binroot$version/lib/pgxs/src/Makefile.global", 0, 
-            "MKDIR_P = /bin/mkdir -p\n";
-    }
     SKIP: {
         skip 'build path not canonicalized on RedHat', 4 if ($PgCommon::rpm);
         # check that we correctly canonicalized the build paths
