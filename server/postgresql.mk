@@ -83,14 +83,14 @@ ifeq ($(call version_ge,10),y)
 endif
 
 # LLVM support
-LLVM_VERSIONED_DEP=$(shell grep 'llvm-[0-9]*-dev' debian/control | grep -v "!$(DEB_HOST_ARCH)" | grep -o '[0-9]*' | head -n1)
+LLVM_VERSIONED_DEP=$(shell grep 'llvm-[0-9]*-dev' debian/control | grep "$(DEB_HOST_ARCH)" | grep -o '[0-9]*' | head -n1)
 ifeq ($(call version_ge,18),y)
   # PG 18+: check if postgresql-NN-jit is to be built
   WITH_LLVM=$(shell dh_listpackages -p postgresql-$(MAJOR_PKG)-jit)
 else
   # PG 11..17: if package depends on LLVM, use it
   ifeq ($(filter pkg.postgresql.nollvm,$(DEB_BUILD_PROFILES)),)
-    LLVM_DEP=$(shell grep 'llvm-dev' debian/control | grep -v "!$(DEB_HOST_ARCH)")
+    LLVM_DEP=$(shell grep 'llvm-dev' debian/control | grep "$(DEB_HOST_ARCH)")
     WITH_LLVM=$(LLVM_VERSIONED_DEP)$(LLVM_DEP)
   endif
 endif
