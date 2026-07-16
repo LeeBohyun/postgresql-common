@@ -1,9 +1,9 @@
-postgresql-common (293) UNRELEASED; urgency=medium
+postgresql-common (293) unstable; urgency=medium
 
   * pg_virtualenv: Set EXTRA_REGRESS_OPTS for pg_regress --temp-instance runs.
   * server/postgresql.mk: llvm architectures are a include list now.
 
- -- Christoph Berg <myon@debian.org>  Fri, 05 Jun 2026 14:34:36 +0200
+ -- Christoph Berg <myon@debian.org>  Thu, 16 Jul 2026 13:08:41 +0200
 
 postgresql-common (292) unstable; urgency=medium
 
