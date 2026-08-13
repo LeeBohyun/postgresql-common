@@ -261,46 +261,46 @@ tel|2
         return "createlang --cluster $v/main $extension nobodydb";
     }
 
-    # Check PL/Perl untrusted
-    my $fn_cmd = 'CREATE FUNCTION read_file() RETURNS text AS \'open F, \\"/etc/passwd\\"; \\$buf = <F>; close F; return \\$buf;\' LANGUAGE plperl';
-    is ((exec_as 'nobody', create_extension($v, 'plperlu')), 1, 'CREATE EXTENSION plperlu fails for user nobody');
-    is_program_out 'postgres', create_extension($v, 'plperlu'), 0, '', 'CREATE EXTENSION plperlu succeeds for user postgres';
-    is ((exec_as 'nobody', "psql nobodydb -qc \"${fn_cmd}u;\""), 1, 'creating PL/PerlU function as user nobody fails');
-    is ((exec_as 'postgres', "psql nobodydb -qc \"${fn_cmd};\""), 1, 'creating unsafe PL/Perl function as user postgres fails');
-    is_program_out 'postgres', "psql nobodydb -qc \"${fn_cmd}u;\"", 0, '', 'creating PL/PerlU function as user postgres succeeds';
-    like_program_out 'nobody', 'psql nobodydb -Atc "select read_file()"',
-	0, qr/^root:/, 'calling PL/PerlU function';
-
-    # Check PL/Perl trusted
-    my $pluser = ($v >= '8.3') ? 'nobody' : 'postgres'; # pg_pltemplate allows non-superusers to install trusted languages in 8.3+
-    is_program_out $pluser, create_extension($v, 'plperl'), 0, '', "CREATE EXTENSION plperl succeeds for user $pluser";
-    is ((exec_as 'nobody', "psql nobodydb -qc \"${fn_cmd};\""), 1, 'creating unsafe PL/Perl function as user nobody fails');
-    is_program_out 'nobody', 'psql nobodydb -qc "CREATE FUNCTION remove_vowels(text) RETURNS text AS \'\\$_[0] =~ s/[aeiou]/_/ig; return \\$_[0];\' LANGUAGE plperl;"',
-	0, '', 'creating PL/Perl function as user nobody succeeds';
-    is_program_out 'nobody', 'psql nobodydb -Atc "select remove_vowels(\'foobArish\')"',
-	0, "f__b_r_sh\n", 'calling PL/Perl function';
-
-    # Check PL/Python3 (untrusted)
     SKIP: {
-        skip "Skipping PL/Python3 test for version $v...", 6 if ($v < 9.1);
+        skip "Skipping PL tests for version $v", 34 if ($v < 10);
+        # Check PL/Perl untrusted
+        my $fn_cmd = 'CREATE FUNCTION read_file() RETURNS text AS \'open F, \\"/etc/passwd\\"; \\$buf = <F>; close F; return \\$buf;\' LANGUAGE plperl';
+        is ((exec_as 'nobody', create_extension($v, 'plperlu')), 1, 'CREATE EXTENSION plperlu fails for user nobody');
+        is_program_out 'postgres', create_extension($v, 'plperlu'), 0, '', 'CREATE EXTENSION plperlu succeeds for user postgres';
+        is ((exec_as 'nobody', "psql nobodydb -qc \"${fn_cmd}u;\""), 1, 'creating PL/PerlU function as user nobody fails');
+        is ((exec_as 'postgres', "psql nobodydb -qc \"${fn_cmd};\""), 1, 'creating unsafe PL/Perl function as user postgres fails');
+        is_program_out 'postgres', "psql nobodydb -qc \"${fn_cmd}u;\"", 0, '', 'creating PL/PerlU function as user postgres succeeds';
+        like_program_out 'nobody', 'psql nobodydb -Atc "select read_file()"',
+            0, qr/^root:/, 'calling PL/PerlU function';
+
+        # Check PL/Perl trusted
+        my $pluser = ($v >= '8.3') ? 'nobody' : 'postgres'; # pg_pltemplate allows non-superusers to install trusted languages in 8.3+
+        is_program_out $pluser, create_extension($v, 'plperl'), 0, '', "CREATE EXTENSION plperl succeeds for user $pluser";
+        is ((exec_as 'nobody', "psql nobodydb -qc \"${fn_cmd};\""), 1, 'creating unsafe PL/Perl function as user nobody fails');
+        is_program_out 'nobody', 'psql nobodydb -qc "CREATE FUNCTION remove_vowels(text) RETURNS text AS \'\\$_[0] =~ s/[aeiou]/_/ig; return \\$_[0];\' LANGUAGE plperl;"',
+            0, '', 'creating PL/Perl function as user nobody succeeds';
+        is_program_out 'nobody', 'psql nobodydb -Atc "select remove_vowels(\'foobArish\')"',
+            0, "f__b_r_sh\n", 'calling PL/Perl function';
+
+        # Check PL/Python3 (untrusted)
 	is_program_out 'postgres', create_extension($v, 'plpython3u'), 0, '', 'CREATE EXTENSION plpython3u succeeds for user postgres';
 	is_program_out 'postgres', 'psql nobodydb -qc "CREATE FUNCTION capitalize3(text) RETURNS text AS \'import sys; return args[0].capitalize() + sys.version[0]\' LANGUAGE plpython3u;"',
 	    0, '', 'creating PL/Python3 function as user postgres succeeds';
 	is_program_out 'nobody', 'psql nobodydb -Atc "select capitalize3(\'foo\')"',
 	    0, "Foo3\n", 'calling PL/Python function';
-    }
 
-    # Check PL/Tcl (trusted/untrusted)
-    is_program_out 'postgres', create_extension($v, 'pltcl'), 0, '', 'CREATE EXTENSION pltcl succeeds for user postgres';
-    is_program_out 'postgres', create_extension($v, 'pltclu'), 0, '', 'CREATE EXTENSION pltclu succeeds for user postgres';
-    is_program_out 'nobody', 'psql nobodydb -qc "CREATE FUNCTION tcl_max(integer, integer) RETURNS integer AS \'if {\\$1 > \\$2} {return \\$1}; return \\$2\' LANGUAGE pltcl STRICT;"',
-	0, '', 'creating PL/Tcl function as user nobody succeeds';
-    is_program_out 'postgres', 'psql nobodydb -qc "CREATE FUNCTION tcl_max_u(integer, integer) RETURNS integer AS \'if {\\$1 > \\$2} {return \\$1}; return \\$2\' LANGUAGE pltclu STRICT;"',
-	0, '', 'creating PL/TclU function as user postgres succeeds';
-    is_program_out 'nobody', 'psql nobodydb -Atc "select tcl_max(3,4)"', 0,
-        "4\n", 'calling PL/Tcl function';
-    is_program_out 'nobody', 'psql nobodydb -Atc "select tcl_max_u(5,4)"', 0,
-        "5\n", 'calling PL/TclU function';
+        # Check PL/Tcl (trusted/untrusted)
+        is_program_out 'postgres', create_extension($v, 'pltcl'), 0, '', 'CREATE EXTENSION pltcl succeeds for user postgres';
+        is_program_out 'postgres', create_extension($v, 'pltclu'), 0, '', 'CREATE EXTENSION pltclu succeeds for user postgres';
+        is_program_out 'nobody', 'psql nobodydb -qc "CREATE FUNCTION tcl_max(integer, integer) RETURNS integer AS \'if {\\$1 > \\$2} {return \\$1}; return \\$2\' LANGUAGE pltcl STRICT;"',
+            0, '', 'creating PL/Tcl function as user nobody succeeds';
+        is_program_out 'postgres', 'psql nobodydb -qc "CREATE FUNCTION tcl_max_u(integer, integer) RETURNS integer AS \'if {\\$1 > \\$2} {return \\$1}; return \\$2\' LANGUAGE pltclu STRICT;"',
+            0, '', 'creating PL/TclU function as user postgres succeeds';
+        is_program_out 'nobody', 'psql nobodydb -Atc "select tcl_max(3,4)"', 0,
+            "4\n", 'calling PL/Tcl function';
+        is_program_out 'nobody', 'psql nobodydb -Atc "select tcl_max_u(5,4)"', 0,
+            "5\n", 'calling PL/TclU function';
+    }
 
     # fake rotated logs to check that they are cleaned up properly
     open L, ">$default_log.1" or die "could not open fake rotated log file";

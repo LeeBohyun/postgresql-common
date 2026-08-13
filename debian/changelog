@@ -1,3 +1,9 @@
+postgresql-common (294) UNRELEASED; urgency=medium
+
+  * Disable plperl plpython pltcl tests on 8.x/9.x.
+
+ -- Christoph Berg <myon@debian.org>  Thu, 13 Aug 2026 22:44:32 +0200
+
 postgresql-common (293) unstable; urgency=medium
 
   * pg_virtualenv: Set EXTRA_REGRESS_OPTS for pg_regress --temp-instance runs.

@@ -39,11 +39,11 @@ foreach my $v (@MAJORS) {
     note $v;
     ok ((deb_installed "postgresql-$v$f"), "postgresql-$v$f installed");
     SKIP: {
-        skip "no Python 3 package for version $v", 1 if ($v < '9.1');
+        skip "no PL packages for version $v", 3 if ($v < 10);
 	ok ((deb_installed "postgresql-plpython3-$v$f"), "postgresql-plpython3-$v$f installed");
+        ok ((deb_installed "postgresql-plperl-$v$f"), "postgresql-plperl-$v$f installed");
+        ok ((deb_installed "postgresql-pltcl-$v$f"), "postgresql-pltcl-$v$f installed");
     }
-    ok ((deb_installed "postgresql-plperl-$v$f"), "postgresql-plperl-$v$f installed");
-    ok ((deb_installed "postgresql-pltcl-$v$f"), "postgresql-pltcl-$v$f installed");
     SKIP: {
         my $jit_deb = "postgresql-$v$f-jit";
         skip "No $jit_deb package on $v", 1 if ($v < 18);
