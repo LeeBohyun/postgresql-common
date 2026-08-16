@@ -67,8 +67,10 @@ if [ "${INSTALL:-}" ] && [ -z "${UNSHARED:-}" ]; then
         debian|ubuntu)
             for v in $PG_VERSIONS; do
                 case $v in
-                    8.*|9.0) ;;
-                    *) PYTHON3_PACKAGE=postgresql-plpython3-$v${PG_FLAVOR:-} ;;
+                    [12]*)
+                        # PL packages built for PG10+ currently
+                        PL_PACKAGES="postgresql-plperl-$v${PG_FLAVOR:-} postgresql-plpython3-$v${PG_FLAVOR:-} postgresql-pltcl-$v${PG_FLAVOR:-}"
+                        ;;
                 esac
                 case $v in
                     1[89]|2*)
@@ -80,9 +82,7 @@ if [ "${INSTALL:-}" ] && [ -z "${UNSHARED:-}" ]; then
                 esac
                 apt-get install -y \
                     postgresql-contrib-$v${PG_FLAVOR:=} \
-                    postgresql-plperl-$v$PG_FLAVOR \
-                    ${PYTHON3_PACKAGE:-} \
-                    postgresql-pltcl-$v$PG_FLAVOR \
+                    ${PL_PACKAGES:-} \
                     ${JIT_PACKAGE:-} \
                     postgresql-server-dev-$v$PG_FLAVOR \
                     postgresql-doc-$v$PG_FLAVOR
