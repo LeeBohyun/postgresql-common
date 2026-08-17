@@ -31,8 +31,20 @@ CATVERSION = $(shell $(AUX_MK_DIR)/catversion)
 
 # configure flags
 
+ifeq ($(filter noperl,$(DEB_BUILD_PROFILES)),)
+PERL_FLAGS = --with-perl
+endif
+ifeq ($(filter nopython,$(DEB_BUILD_PROFILES)),)
+PYTHON_FLAGS = --with-python
+endif
+ifeq ($(filter notcl,$(DEB_BUILD_PROFILES)),)
+TCL_FLAGS = --with-tcl
+endif
+
 CONFIGURE_FLAGS = \
-  --with-tcl \
+  $(PERL_FLAGS) \
+  $(PYTHON_FLAGS) \
+  $(TCL_FLAGS) \
   --with-perl \
   --with-python \
   --with-pam \
@@ -258,8 +270,8 @@ override_dh_install-arch:
 	       debian/postgresql-client-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/pgxs/src/Makefile.global
 
 	# these are shipped in the pl packages
-	bash -c "rm -v debian/postgresql-$(MAJOR_PKG)/usr/share/postgresql/$(MAJOR_VER)/extension/*{plperl,plpython,pltcl}*"
-	bash -c "rm -v debian/postgresql-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/*{plperl,plpython,pltcl}*"
+	bash -c "rm -vf debian/postgresql-$(MAJOR_PKG)/usr/share/postgresql/$(MAJOR_VER)/extension/*{plperl,plpython,pltcl}*"
+	bash -c "rm -vf debian/postgresql-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/*{plperl,plpython,pltcl}*"
 	bash -c "rm -rfv debian/postgresql-$(MAJOR_PKG)/usr/lib/postgresql/$(MAJOR_VER)/lib/bitcode/*{plperl,plpython,pltcl}*"
 ifeq ($(call version_ge,18),y)
 	# shipped in the -jit package
