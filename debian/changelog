@@ -3,6 +3,8 @@ postgresql-common (294) UNRELEASED; urgency=medium
   [ Christoph Berg ]
   * Disable plperl plpython pltcl tests on 8.x/9.x.
   * server/postgresql.mk: Add noperl and notcl build profiles.
+  * Drop sticky bit on /var/log/postgresql/ and set owner to postgres.
+    (Closes: #1010291)
 
   [ Luca Boccassi ]
   * pg_createcluster: use 1000 as system uid threshold.
