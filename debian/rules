@@ -33,6 +33,8 @@ override_dh_installsystemd:
 	dh_installsystemd --no-stop-on-upgrade
 	# move unit files to /usr on systems that support it
 	if test -x /usr/bin/dh_movetousr; then dh_movetousr; fi
+	# this can be moved to dh-sequence-installsysusers once bullseye and jammy are gone
+	dh_installsysusers
 
 override_dh_gencontrol:
 	dh_gencontrol -ppostgresql-server-dev-all -- -Vserver-dev-all-depends="$(foreach v,$(SUPPORTED_VERSIONS),postgresql-server-dev-$v,)"
