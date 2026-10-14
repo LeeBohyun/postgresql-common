@@ -251,6 +251,10 @@ sub adapt_conffiles {
         $deprecate->(\%c, 'escape_string_warning', 'standard_conforming_strings now always on');
         $rename->(\%c, 'io_workers', 'io_max_workers');
     }
+
+    if ($newversion >= '20') {
+        $deprecate->(\%c, 'array_nulls', 'does not exist anymore');
+    }
 }
 
 sub migrate_config_files() {
