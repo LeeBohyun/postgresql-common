@@ -6,19 +6,27 @@ use lib 't';
 use TestLib;
 use PgCommon;
 
-use Test::More tests => $MAJORS[-1] >= '8.3' ? 33 : 1;
+use Test::More;
 
 # Do test with newest version
 my $v = $MAJORS[-1];
 if ($v < '8.3') {
     pass 'Skipping core limit tests for versions < 8.3';
+    done_testing();
     exit 0;
 }
 
 # enable core dumps
 # sudo and salsa-ci set the hard limit to 0 by default, undo that
-is_program_out 0, "prlimit --core=0:unlimited --pid=$$", 0, '', "set core file size to unlimited";
-is_program_out 'postgres', "sh -c 'ulimit -Hc'", 0, "unlimited\n", "core file size is unlimited";
+my $outref;
+if (exec_as 0, "prlimit --core=0:unlimited --pid=$$", $outref) {
+    # No CAP_SYS_RESOURCE (or similar): every test below would fail, skip them.
+    pass 'Skipping core limit tests, could not raise core file size limit';
+    done_testing();
+    exit 0;
+}
+is_program_out 'postgres', "sh -c 'ulimit -Sc'", 0, "0\n", "soft core file size is 0";
+is_program_out 'postgres', "sh -c 'ulimit -Hc'", 0, "unlimited\n", "hard core file size is unlimited";
 
 # create cluster
 is ((system "pg_createcluster $v main >/dev/null"), 0, "pg_createcluster $v main");
@@ -47,5 +55,7 @@ is_program_out 'postgres', "pg_ctlcluster $v main stop", 0, '', "stopping cluste
 
 is ((system "pg_dropcluster $v main --stop"), 0, 'dropping cluster');
 check_clean;
+
+done_testing();
 
 # vim: filetype=perl
