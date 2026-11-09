@@ -9,6 +9,7 @@ postgresql-common (294) UNRELEASED; urgency=medium
   * pg_buildext, /etc/postgresql-common/minor_versions: Set minimum server
     versions to depend on when extensions are built. Start with the current
     minor versions just being released.
+  * Move pg_buildext.1 to postgresql-common-dev.
   * pg_config: Work around broken `ls -v` on Ubuntu's rust coreutils.
   * pg_upgradecluster: Remove array_nulls in PG 20.
   * t/085_pg_ctl.conf.t: Skip tests if we can't raise limits.

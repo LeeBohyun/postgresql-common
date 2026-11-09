@@ -88,11 +88,11 @@ Depends:
  ${misc:Depends},
 Breaks:
  postgresql-client-common (<< 269),
- postgresql-common (<< 269),
+ postgresql-common (<< 294),
  postgresql-server-dev-all (<< 269),
 Replaces:
  postgresql-client-common (<< 269),
- postgresql-common (<< 269),
+ postgresql-common (<< 294),
  postgresql-server-dev-all (<< 269),
 Description: extension build tool for multiple PostgreSQL versions
  The postgresql-server-dev-all package provides the pg_buildext script for
