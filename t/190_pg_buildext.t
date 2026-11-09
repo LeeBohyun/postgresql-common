@@ -53,7 +53,8 @@ foreach my $ver (@versions) {
     my $deb = "postgresql-$ver-foo_123-1_$arch.deb";
     ok (-f $deb, "$deb was built");
     my $info = `dpkg-deb --info $deb control`;
-    like $info, qr/^Depends: postgresql-$ver$/m, "correct postgresql dependency";
+    like $info, qr/^Depends: postgresql-$ver/m, "correct postgresql dependency";
+    like $info, qr/^Depends: postgresql-$ver \(>> $ver/m, "correct versioned postgresql dependency" if ($ver >= 14);
     if (TestLib::have_jit() and $ver >= 14) { # minimum version that has JIT on all dists
         like $info, qr/^Breaks: postgresql-$ver-jit-llvm \(<< \d+\)/m, "correct postgresql-jit-llvm breaks";
     }
