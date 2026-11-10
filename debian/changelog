@@ -1,4 +1,4 @@
-postgresql-common (294) UNRELEASED; urgency=medium
+postgresql-common (294) unstable; urgency=medium
 
   [ Christoph Berg ]
   * server/postgresql.mk: Add noperl and notcl build profiles.
@@ -19,7 +19,7 @@ postgresql-common (294) UNRELEASED; urgency=medium
   * pg_createcluster: use 1000 as system uid threshold.
   * Install and use sysusers.d/tmpfiles.d config files.
 
- -- Christoph Berg <myon@debian.org>  Thu, 13 Aug 2026 22:44:32 +0200
+ -- Christoph Berg <myon@debian.org>  Tue, 10 Nov 2026 11:10:39 +0100
 
 postgresql-common (293) unstable; urgency=medium
 
