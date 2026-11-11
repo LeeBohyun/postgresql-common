@@ -24,9 +24,9 @@ foreach my $v (@MAJORS) {
         $ENV{USER} = 'root';
         like_program_out 'root',     "fakeroot $virtualenv", 0, qr!id.root\ncurrent_user.postgres!, "running fakeroot pg_virtualenv as root";
         $ENV{USER} = 'postgres';
-        like_program_out 'postgres', "fakeroot $virtualenv", 0, qr!id.root\ncurrent_user.postgres!, "running fakeroot pg_virtualenv as postgres";
+        like_program_out 'postgres', "fakeroot $virtualenv", 0, qr!id.postgres\ncurrent_user.postgres!, "running fakeroot pg_virtualenv as postgres";
         $ENV{USER} = 'nobody';
-        like_program_out 'nobody',   "fakeroot $virtualenv", 0, qr!id.root\ncurrent_user.nobody!,   "running fakeroot pg_virtualenv as nobody";
+        like_program_out 'nobody',   "fakeroot $virtualenv", 0, qr!id.nobody\ncurrent_user.nobody!, "running fakeroot pg_virtualenv as nobody";
     }
 }
 
