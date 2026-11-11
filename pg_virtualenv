@@ -108,13 +108,10 @@ else
 fi
 
 # we are not root
+disable_fakeroot
 if [ "$(id -u)" != 0 ]; then
     NONROOT=1
 fi
-# we aren't really root in fakeroot (but leave it enabled for commands spawned)
-case ${LD_PRELOAD:-} in
-    *fakeroot*) NONROOT=1 ;;
-esac
 
 # non-root operation: create a temp dir where we store everything
 if [ "${NONROOT:-}" ]; then
@@ -134,7 +131,6 @@ if [ "${NONROOT:-}" ]; then
 
     cleanup () {
 	set +e
-        disable_fakeroot
 	for v in $PG_VERSIONS; do
             # don't drop existing clusters named "regress"
             [ -f $PG_CLUSTER_CONF_ROOT/$v/regress/.by_pg_virtualenv ] || continue
@@ -233,9 +229,6 @@ for v in $PG_VERSIONS; do
                 8.4|9.*|1[01234]) PGCONF_OPTS+=("--pgoption" "stats_temp_directory=") ;;
             esac
         fi
-        # disable fakeroot here because we really can't run as root
-        # (and still switch to postgres when using fakeroot as root user)
-        disable_fakeroot
 	pg_createcluster --quiet \
 	    ${PGPORT:+-p "$PGPORT"} \
 	    ${NONROOT:+-d "$WORKDIR/data/$v/regress"} \
@@ -243,7 +236,6 @@ for v in $PG_VERSIONS; do
             ${CREATE_OPTS:-} --pgoption fsync=off ${PKGARGS:-} "${PGCONF_OPTS[@]}" \
             $v regress -- \
 	    --username="$PGUSER" --pwfile="$PWFILE" $NOSYNC ${INITDB_OPTS:-}
-	# in fakeroot, the username will likely default to "postgres" otherwise
         echo "This is a temporary throw-away cluster" > ${PG_CLUSTER_CONF_ROOT:-/etc/postgresql}/$v/regress/.by_pg_virtualenv
         # start cluster with coredumps enabled
         [ $v != 8.2 ] && ENABLE_COREDUMPS="-c"
