@@ -37,7 +37,7 @@ endif
 ifeq ($(filter nopython,$(DEB_BUILD_PROFILES)),)
 PYTHON_FLAGS = --with-python
 endif
-ifeq ($(filter notcl,$(DEB_BUILD_PROFILES)),)
+ifeq ($(filter pkg.postgresql.notcl,$(DEB_BUILD_PROFILES)),)
 TCL_FLAGS = --with-tcl
 endif
 
