@@ -1,3 +1,9 @@
+postgresql-common (295) unstable; urgency=medium
+
+  * Call systemd-sysusers before systemd-tmpfiles. (See #1153884)
+
+ -- Christoph Berg <myon@debian.org>  Fri, 13 Nov 2026 13:29:56 +0100
+
 postgresql-common (294) unstable; urgency=medium
 
   [ Christoph Berg ]
