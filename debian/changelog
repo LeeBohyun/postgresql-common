@@ -1,3 +1,9 @@
+postgresql-common (296) UNRELEASED; urgency=medium
+
+  * Updated sv translation by Jonatan Nyberg, thanks! (Closes: #1153964)
+
+ -- Christoph Berg <myon@debian.org>  Sat, 14 Nov 2026 14:25:17 +0100
+
 postgresql-common (295) unstable; urgency=medium
 
   * Call systemd-sysusers before systemd-tmpfiles. (See #1153884)
