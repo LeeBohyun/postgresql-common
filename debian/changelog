@@ -1,8 +1,9 @@
-postgresql-common (296) UNRELEASED; urgency=medium
+postgresql-common (296) unstable; urgency=medium
 
+  * Mark 19 as stable.
   * Updated sv translation by Jonatan Nyberg, thanks! (Closes: #1153964)
 
- -- Christoph Berg <myon@debian.org>  Sat, 14 Nov 2026 14:25:17 +0100
+ -- Christoph Berg <myon@debian.org>  Tue, 17 Nov 2026 14:36:24 +0100
 
 postgresql-common (295) unstable; urgency=medium
 
