@@ -1,3 +1,10 @@
+postgresql-common (297) UNRELEASED; urgency=medium
+
+  * pg_virtualenv: Set TEMP_CONFIG so TAP-test generated clusters in PG <=16
+    pick up extension_destdir.
+
+ -- Christoph Berg <myon@debian.org>  Wed, 18 Nov 2026 21:24:18 +0100
+
 postgresql-common (296) unstable; urgency=medium
 
   * Mark 19 as stable.
