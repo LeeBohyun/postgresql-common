@@ -1,3 +1,10 @@
+postgresql-common (298) UNRELEASED; urgency=medium
+
+  * Prefer systemd-standalone-{sysusers,tmpfiles} over systemd in our
+    postgresql-common dependency list.
+
+ -- Christoph Berg <myon@debian.org>  Tue, 24 Nov 2026 14:04:12 +0100
+
 postgresql-common (297) unstable; urgency=medium
 
   * pg_virtualenv: Set TEMP_CONFIG so TAP-test generated clusters in PG <=16

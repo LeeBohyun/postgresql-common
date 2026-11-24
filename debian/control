@@ -22,8 +22,8 @@ Pre-Depends:
 Depends:
  debconf (>= 0.5.00) | debconf-2.0,
  libjson-perl,
- systemd | systemd-standalone-sysusers | systemd-sysusers,
- systemd | systemd-standalone-tmpfiles | systemd-tmpfiles,
+ systemd-standalone-sysusers | systemd | systemd-sysusers,
+ systemd-standalone-tmpfiles | systemd | systemd-tmpfiles,
  sysvinit-utils (>= 3.05-4~) | lsb-base,
  postgresql-client-common (= ${source:Version}),
  ssl-cert (>= 1.0.11),
