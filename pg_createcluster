@@ -296,7 +296,8 @@ foreach my $argv (@ARGV) {
     if ($argv =~ /^(-\w*A|--auth\b)/) { # -A --auth --auth-host --auth-local
 	$explicit_auth_config = 1;
     }
-    push @initdb_opts_from_cli, $argv =~ /(.*)/; # untaint
+    # Preserve embedded newlines, for example in --icu-rules.
+    push @initdb_opts_from_cli, $argv =~ /(.*)/s; # untaint
 }
 
 # pg_hba.conf authentication settings
