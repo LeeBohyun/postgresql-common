@@ -1350,9 +1350,10 @@ sub get_db_encoding {
  owner. (For versions >= 8.4; for older versions use get_cluster_locales()).
 
  Arguments: <version> <cluster> <database>
- Returns: (LC_CTYPE, LC_COLLATE, locprovider, iculocale, icurules) or undef if it cannot be determined.
+ Returns: (LC_CTYPE, LC_COLLATE, locprovider, locale, icurules) or undef if it cannot be determined.
  PG15 adds locale provider and icu locale to the returned values
  PG16 adds icu rules
+ PG17 stores ICU and builtin locale names in datlocale
 
 =cut
 
@@ -1362,7 +1363,6 @@ sub get_db_locales {
     my $socketdir = get_cluster_socketdir $version, $cluster;
     my $psql = get_program_path 'psql', $version;
     return undef unless ($port && $socketdir && $psql);
-    my ($ctype, $collate, $locale_provider, $icu_locale, $icu_rules);
 
     # try to switch to cluster owner
     prepare_exec 'LC_ALL';
@@ -1371,23 +1371,36 @@ sub get_db_locales {
     $> = (stat (cluster_data_directory $version, $cluster))[4];
 
     my $datlocprovider = $version >= 15 ? "CASE datlocprovider::text WHEN 'c' THEN 'libc' WHEN 'i' THEN 'icu' WHEN 'b' THEN 'builtin' END" : "NULL";
-    my $daticulocale = ($version >= 15 and $version < 17) ? "daticulocale" : "NULL";
+    my $datlocale = $version >= 17 ? "datlocale" : $version >= 15 ? "daticulocale" : "NULL";
     my $daticurules = $version >= 16 ? "daticurules" : "NULL";
 
-    open PSQL, '-|', $psql, '-h', $socketdir, '-p', $port, '-AXtc',
-        "SELECT datctype, datcollate, $datlocprovider, $daticulocale, $daticurules FROM pg_database where datname = current_database()", $db or
+    # NUL separators preserve pipes and newlines in ICU rules. Keep the old
+    # output format for versions predating the supported pg_upgrade sources.
+    my @format = $version >= 10 ? ('-z', '-0') : ();
+    open PSQL, '-|', $psql, '-h', $socketdir, '-p', $port, @format, '-AXtc',
+        "SELECT datctype, datcollate, $datlocprovider, $datlocale, $daticurules FROM pg_database where datname = current_database()", $db or
         die "Internal error: could not call $psql to determine datctype and datcollate: $!";
-    my $out = <PSQL> // error 'could not determine datctype and datcollate';
+    my $out;
+    {
+        local $/ = $version >= 10 ? undef : $/;
+        $out = <PSQL>;
+    }
     close PSQL;
-    ($out) = $out =~ /^(.*)$/; # untaint
-    ($ctype, $collate, $locale_provider, $icu_locale, $icu_rules) = split /\|/, $out;
-
+    my $status = $?;
     $> = $orig_euid;
     restore_exec;
-    chomp $ctype;
-    chomp $collate;
-    return ($ctype, $collate, $locale_provider, $icu_locale, $icu_rules) unless $?;
-    return (undef, undef, undef, undef, undef);
+    return (undef, undef, undef, undef, undef) if $status || !defined $out;
+    ($out) = $out =~ /\A(.*)\z/s; # untaint without truncating multiline rules
+    my @values;
+    if ($version >= 10) {
+        @values = split /\0/, $out, -1;
+        return (undef, undef, undef, undef, undef) unless @values == 6 && pop(@values) eq '';
+    } else {
+        chomp $out;
+        @values = split /\|/, $out, -1;
+    }
+    return (undef, undef, undef, undef, undef) unless @values == 5;
+    return @values;
 }
 
 

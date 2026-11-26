@@ -15,7 +15,7 @@ use lib 't';
 use TestLib;
 use PgCommon;
 
-use Test::More tests => (@MAJORS == 1) ? 1 : 119 * 3;
+use Test::More tests => (@MAJORS == 1) ? 1 : 123 * 3;
 
 if (@MAJORS == 1) {
     pass 'only one major version installed, skipping upgrade tests';
@@ -24,13 +24,22 @@ if (@MAJORS == 1) {
 
 my $old_version = $MAJORS[0];
 my $new_version = $MAJORS[-1];
+my $pg_upgrade = get_program_path 'pg_upgrade', $new_version;
+my $has_printer = $pg_upgrade && `$pg_upgrade --help` =~ /--print-initdb-options/;
 
 foreach my $upgrade_options ('-m dump', '-m upgrade', '-m upgrade --link') {
 next if ($ENV{UPGRADE_METHOD} and $upgrade_options !~ /$ENV{UPGRADE_METHOD}$/); # hack to ease debugging individual methods
 note ("upgrade method \"$upgrade_options\", $MAJORS[0] -> $MAJORS[-1]");
 
+# Use nondefault WAL segments when the target can discover them, and exercise
+# enabled checksums in the link case as well as the usual disabled checksums.
+my $wal_size = $has_printer && $old_version >= 11 && $upgrade_options !~ /dump/ ? 2 : 16;
+my $old_has_checksums = $old_version >= 18 || ($old_version >= 9.3 && $upgrade_options =~ /--link/) ? 'on' : 'off';
+my @initdb_options = $wal_size == 2 ? ('--wal-segsize=2') : ();
+push @initdb_options, '--data-checksums' if $old_version >= 9.3 && $upgrade_options =~ /--link/;
+
 # create cluster
-ok ((system "pg_createcluster $MAJORS[0] upgr >/dev/null") == 0,
+ok ((system "pg_createcluster $MAJORS[0] upgr " . (@initdb_options ? "-- @initdb_options " : '') . ">/dev/null") == 0,
     "pg_createcluster $MAJORS[0] upgr");
 exec_as 'root', "sed -i '/^local.*postgres/ s/\$/\\nlocal all foo trust/' /etc/postgresql/$MAJORS[0]/upgr/pg_hba.conf";
 is ((system "pg_ctlcluster $MAJORS[0] upgr start"), 0, 'Starting upgr cluster');
@@ -129,10 +138,11 @@ like_program_out 'nobody', 'pg_lsclusters -h', 0,
     qr/^$MAJORS[0]\s+upgr\s+5432 online postgres/;
 SKIP: {
     skip "no data checksums before 9.3", 2 if ($old_version < 9.3);
-    my $old_has_checksums = $old_version >= 18 ? "on" : "off";
     is_program_out 'nobody', 'psql -Atc "show data_checksums" test', 0, "$old_has_checksums\n",
         "old cluster checksums are $old_has_checksums";
 }
+is_program_out 'nobody', 'psql -Atc "SHOW wal_segment_size" test', 0, "${wal_size}MB\n",
+    'source has the selected WAL segment size';
 
 # Check SELECT in original cluster
 my $select_old;
@@ -237,10 +247,12 @@ is_program_out 'postgres', "psql -Atc \"SELECT spcname FROM pg_class c LEFT JOIN
 # check cluster properties
 SKIP: {
     skip "no data checksums before 9.3", 2 if ($new_version < 9.3);
-    my $new_has_checksums = ($old_version >= 18 or ($old_version < 18 and $new_version >= 18 and $upgrade_options =~ /dump/)) ? "on" : "off";
+    my $new_has_checksums = ($old_has_checksums eq 'on' or ($new_version >= 18 and $upgrade_options =~ /dump/)) ? "on" : "off";
     is_program_out 'nobody', 'psql -Atc "show data_checksums" test', 0, "$new_has_checksums\n",
         "new cluster checksums are $new_has_checksums";
 }
+is_program_out 'nobody', 'psql -Atc "SHOW wal_segment_size" test', 0, "${wal_size}MB\n",
+    'upgrade preserves the WAL segment size';
 
 # stop servers, clean up
 is ((system "pg_dropcluster $MAJORS[0] upgr --stop"), 0, 'Dropping original cluster');

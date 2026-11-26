@@ -5,7 +5,7 @@ use strict;
 use lib 't';
 use TestLib;
 use PgCommon;
-use Test::More tests => (@MAJORS == 1) ? 1 : 46;
+use Test::More tests => (@MAJORS == 1) ? 1 : 51;
 
 if (@MAJORS == 1) {
         pass 'only one major version installed, skipping upgrade tests';
@@ -32,6 +32,27 @@ if ($oldv >= 15) {
     program_ok 'postgres', 'psql -c "create database icutest template template0 locale_provider icu icu_locale de"', 0, "creating database with ICU locale";
 } else {
     program_ok 'postgres', 'psql -c "create database icutest"', 0, "creating placeholder icutest database";
+}
+
+# Check the metadata reader before an upgrade can restore rules through SQL.
+# Pipes, newlines and non-ASCII text must survive in the client encoding
+# requested by the caller.
+SKIP: {
+    skip 'ICU rules require PostgreSQL 16 or later', 3 if $oldv < 16;
+    my $rules = "&a < '\$' < '|' < c < b\r\n&c < \xd0\xb0\n";
+    my $hex = unpack 'H*', $rules;
+    program_ok 'postgres', "psql -c \"UPDATE pg_database SET daticurules = convert_from(decode('$hex', 'hex'), 'UTF8') WHERE datname = 'icutest'\"", 0,
+        'set multiline ICU rules in database encoding';
+    local $ENV{'PGCLIENTENCODING'} = 'UTF8';
+    is_deeply [get_db_locales($oldv, 'main', 'icutest')], ['ru_RU', 'ru_RU', 'icu', 'de', $rules],
+        'locale reader preserves provider, locale and complete rules in the client encoding';
+    is $ENV{'PGCLIENTENCODING'}, 'UTF8', 'locale reader preserves client encoding';
+}
+SKIP: {
+    skip 'builtin locales require PostgreSQL 17 or later', 2 if $oldv < 17;
+    program_ok 'postgres', q{psql -c "CREATE DATABASE builtintest TEMPLATE template0 ENCODING 'UTF8' LOCALE_PROVIDER builtin BUILTIN_LOCALE 'C.UTF-8' LC_COLLATE 'C' LC_CTYPE 'C'"}, 0;
+    is_deeply [get_db_locales($oldv, 'main', 'builtintest')], ['C', 'C', 'builtin', 'C.UTF-8', ''],
+        'locale reader returns the builtin provider locale';
 }
 
 is ((exec_as 'postgres', "printf 'A\\324B' | psql -c \"create table t(x varchar); copy t from stdin\" latintest", $outref), 

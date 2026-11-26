@@ -18,12 +18,11 @@
 
 use strict;
 use warnings;
-use Encode qw(encode FB_CROAK);
 use PgCommon;
-use File::Temp qw(tempfile);
+use File::Temp qw(tempfile tempdir);
 use Getopt::Long;
-use JSON::PP qw(decode_json);
 use POSIX qw(lchown);
+use Text::ParseWords qw(shellwords);
 
 # untaint environment
 $ENV{'PATH'} = '/bin:/usr/bin';
@@ -33,7 +32,7 @@ delete @ENV{'IFS', 'CDPATH', 'ENV', 'BASH_ENV'};
 my ($version, $newversion, $cluster, $newcluster);
 my (%info, %newinfo);
 my ($encoding, $old_lc_ctype, $old_lc_collate); # old cluster encoding
-my ($old_locale_provider, $old_icu_locale, $old_icu_rules);
+my ($old_locale_provider, $old_db_locale, $old_icu_rules);
 my $maintenance_db = 'template1';
 my $keep_on_error = 0;
 
@@ -359,19 +358,20 @@ sub get_encoding {
     if ($version <= '8.3') {
 	($old_lc_ctype, $old_lc_collate) = get_cluster_locales $version, $cluster;
     } else {
-	($old_lc_ctype, $old_lc_collate, $old_locale_provider, $old_icu_locale, $old_icu_rules) = get_db_locales $version, $cluster, $maintenance_db;
+	($old_lc_ctype, $old_lc_collate, $old_locale_provider, $old_db_locale, $old_icu_rules) = get_db_locales $version, $cluster, $maintenance_db;
     }
     unless ($encoding && $old_lc_ctype && $old_lc_collate) {
 	error 'could not get cluster locales';
     }
 }
 
-# Let a supporting target pg_upgrade determine compatible initialization
-# settings. Keep discovery in the cluster owner process: it may start the old
-# server temporarily, and pg_upgrade refuses to run as root.
+# Let a supporting target pg_upgrade determine the control-data settings that
+# must match. Debian still selects encoding and locales from maintenance_db.
+# Run the printer as the source owner and give it a writable log directory.
 sub get_initdb_options {
     my ($pg_upgrade, $old_bindir, $socketdir) = @_;
     return unless $pg_upgrade;
+    my $workdir;
 
     my $read_output = sub {
         my @command = @_;
@@ -379,15 +379,9 @@ sub get_initdb_options {
         my $pid = open(my $output, '-|');
         defined $pid or error "Could not fork pg_upgrade: $!";
         if (!$pid) {
-            use filetest 'access'; # Directory access may be granted by an ACL.
             open STDERR, '>&', $errors or error "Could not redirect pg_upgrade diagnostics: $!";
             change_ugid $info{'owneruid'}, $info{'ownergid'};
-            # Root's temporary directory may be inaccessible to the owner.
-            # Keep usable values; otherwise let the printer use its default.
-            if (defined $ENV{'TMPDIR'} &&
-                    !(-d $ENV{'TMPDIR'} && -w $ENV{'TMPDIR'} && -x $ENV{'TMPDIR'})) {
-                delete $ENV{'TMPDIR'};
-            }
+            chdir $workdir or error "Could not enter $workdir: $!" if defined $workdir;
             exec @command or error "Could not execute $pg_upgrade: $!";
         }
         local $/;
@@ -395,52 +389,42 @@ sub get_initdb_options {
         unless (close $output) {
             seek $errors, 0, 0;
             my $diagnostics = <$errors> // '';
-            error "Could not read initialization options from $pg_upgrade:\n$diagnostics";
+            my $logs = defined $workdir ? "\nInitialization logs are in $workdir\n" : '';
+            error "Could not read initialization options from $pg_upgrade:\n$diagnostics$logs";
         }
         return $result;
     };
 
     my $help = $read_output->($pg_upgrade, '--help');
-    return unless $help =~ /--print-initdb-options/ && $help =~ /--initdb-database/;
+    return unless $help =~ /--print-initdb-options/;
 
-    # TMPDIR may contain commas or exceed the Unix socket path limit.
-    my @command = ($pg_upgrade, '--print-initdb-options=json',
-        "--initdb-database=$maintenance_db",
+    $workdir = tempdir("/var/log/postgresql/pg_upgradecluster-initdb-$version-$newversion.XXXX");
+    if ($> == 0) {
+        chown $info{'owneruid'}, $info{'ownergid'}, $workdir
+            or error "Could not set ownership of $workdir: $!";
+    }
+    my @command = ($pg_upgrade, '--print-initdb-options',
         '-b', ($old_bindir || "$PgCommon::binroot$version/bin"),
         '-d', ($version <= 9.1 ? $info{'pgdata'} : $info{'configdir'}),
         '-p', $info{'port'}, '--socketdir', $socketdir);
     push @command, '-o', "-D $info{configdir}" if $version <= 9.1;
-    my $arguments = eval { decode_json($read_output->(@command)) };
-    error "Invalid initialization options from $pg_upgrade: $@" if $@;
-    error "Expected an array of initialization arguments from $pg_upgrade"
-        unless ref $arguments eq 'ARRAY' && @$arguments;
-    foreach my $argument (@$arguments) {
-        error "Invalid initialization argument from $pg_upgrade"
-            if !defined $argument || ref $argument || index($argument, "\0") >= 0
-            || $argument !~ /^--[a-z][a-z-]*(?:=|\z)/;
-    }
-    my @encodings = map { /^--encoding=([\w-]+)$/ ? $1 : () } @$arguments;
-    error "Expected one database encoding from $pg_upgrade" unless @encodings == 1;
-    my $charset = $encodings[0];
-    $charset =~ s/^WIN/CP/; # PostgreSQL and Encode use different Windows aliases.
-    $charset = 'UTF-8' if $charset eq 'SQL_ASCII';
-    # Core Encode does not support every PostgreSQL encoding. Preserve the
-    # existing discovery path if non-ASCII arguments would need such a codec.
-    return if !Encode::find_encoding($charset) && grep { /[^\x00-\x7f]/ } @$arguments;
+    my $output = $read_output->(@command);
+    error "Invalid initialization options from $pg_upgrade"
+        unless $output =~ /\A[^\0\r\n]+\r?\n\z/;
+    my @arguments = shellwords($output);
+    error "Invalid initialization options from $pg_upgrade"
+        unless @arguments && !grep { !/^--[a-z][a-z-]*(?:=|\z)/ } @arguments;
 
-    foreach my $argument (@$arguments) {
-        # JSON is UTF-8; initdb expects locale values in the database encoding.
-        # ASCII values need no conversion, including with legacy encodings for
-        # which Perl does not provide a codec.
-        if ($argument =~ /[^\x00-\x7f]/) {
-            eval { $argument = encode($charset, $argument, FB_CROAK) };
-            error "Could not encode initialization argument as $encodings[0]: $@" if $@;
-        }
-        # Preserve embedded newlines while untainting arguments for list-form
-        # execution. They are passed after pg_createcluster's -- separator.
-        ($argument) = $argument =~ /\A(.*)\z/s;
-    }
-    return $arguments;
+    # Ignore printed locale defaults: maintenance_db and explicit overrides
+    # retain their existing meaning. Captures also untaint the two arguments.
+    my @wal = map { /^--wal-segsize=(\d+)\z/ ? $1 : () } @arguments;
+    error "Expected one WAL segment size from $pg_upgrade"
+        unless @wal == 1 && $wal[0] >= 1 && $wal[0] <= 1024
+            && ($wal[0] & ($wal[0] - 1)) == 0;
+    my @checksums = map { /\A(--(?:no-)?data-checksums)\z/ ? $1 : () } @arguments;
+    error "Expected one checksum setting from $pg_upgrade" unless @checksums == 1;
+    rmdir $workdir;
+    return ["--wal-segsize=$wal[0]", $checksums[0]];
 }
 
 # RedHat's run-parts doesn't support any options, supply a minimalistic implementation here
@@ -597,11 +581,10 @@ if ($check_only) {
 
 print "Upgrading cluster $version/$cluster to $newversion/$newcluster ...\n";
 
-# Retain dump-method and explicit locale-override policies. Older target
-# binaries fall back to the existing catalog discovery below.
+# Keep dump-method policy and fall back for targets without the printer.
 my $oldsocket = get_cluster_socketdir $version, $cluster;
 my $source_initdb_options;
-if ($method eq 'upgrade' && !$locale && !$lc_ctype && !$lc_collate) {
+if ($method eq 'upgrade') {
     $source_initdb_options = get_initdb_options(
         get_program_path('pg_upgrade', $newversion), $old_bindir, $oldsocket);
 }
@@ -613,20 +596,25 @@ my $temp_hba_conf = temp_hba_conf $version, $cluster, $owner, $info{'owneruid'};
 
 # stop old cluster
 if ($info{'running'}) {
-    get_encoding $version, $cluster unless $source_initdb_options;
+    get_encoding $version, $cluster;
     print "Stopping old cluster...\n";
     my @argv = ('pg_ctlcluster', $version, $cluster, 'stop');
     error "Could not stop old cluster" if system @argv;
 }
 
-if ($method eq 'dump' or ($method eq 'upgrade' and not $info{'running'} and not $source_initdb_options)) {
+if ($method eq 'dump' or ($method eq 'upgrade' and not $info{'running'})) {
     print "Restarting old cluster with restricted connections...\n";
     my @argv = ('pg_ctlcluster',
         ($old_bindir ? ("--bindir=$old_bindir") : ()),
         $version, $cluster, 'start', '-o', "-c hba_file=$temp_hba_conf");
     error "Could not restart old cluster" if system @argv;
 
-    get_encoding $version, $cluster unless ($encoding); # if the cluster was not running before, get encoding now
+    # A metadata error must also stop a source started only for discovery.
+    eval { get_encoding $version, $cluster unless $encoding; 1 } or do {
+        my $error = $@;
+        system 'pg_ctlcluster', $version, $cluster, 'stop' unless $info{'running'};
+        die $error;
+    };
 
     if ($method eq 'upgrade') {
 	print "Stopping old cluster...\n";
@@ -646,31 +634,30 @@ my @argv = ('pg_createcluster', '-u', $info{'owneruid'}, '-g', $info{'ownergid'}
     $newversion, $newcluster);
 push @argv, ('--datadir', $datadir) if $datadir;
 push @argv, ('--logfile', $logfile) if $logfile;
+push @argv, ('--encoding', $encoding) unless $locale or $lc_ctype;
+$lc_ctype ||= $locale || $old_lc_ctype;
+$lc_collate ||= $locale || $old_lc_collate;
+push @argv, ('--locale', $locale) if $locale;
+push @argv, ('--lc-collate', $lc_collate) if $lc_collate;
+push @argv, ('--lc-ctype', $lc_ctype) if $lc_ctype;
 push @argv, ('--lc-messages', $lc_messages) if $lc_messages;
 push @argv, ('--lc-monetary', $lc_monetary) if $lc_monetary;
 push @argv, ('--lc-numeric', $lc_numeric) if $lc_numeric;
 push @argv, ('--lc-time', $lc_time) if $lc_time;
+push @argv, ('--');
+push @argv, ('--locale-provider', $old_locale_provider) if $old_locale_provider;
+push @argv, ($old_locale_provider eq 'builtin' ? '--builtin-locale' : '--icu-locale', $old_db_locale)
+    if $old_db_locale;
+push @argv, ('--icu-rules', $old_icu_rules) if $old_icu_rules;
 if ($source_initdb_options) {
-    push @argv, '--', @$source_initdb_options;
+    push @argv, @$source_initdb_options;
+} elsif ($oldcontrol->{'Data page checksum version'} or (defined $data_checksums and $data_checksums == 1)) { # oldcontrol 0 = off
+    # enable data checksums if the old cluster had them
+    push @argv, ('--data-checksums');
 } else {
-    push @argv, ('--encoding', $encoding) unless $locale or $lc_ctype;
-    $lc_ctype ||= $locale || $old_lc_ctype;
-    $lc_collate ||= $locale || $old_lc_collate;
-    push @argv, ('--locale', $locale) if $locale;
-    push @argv, ('--lc-collate', $lc_collate) if $lc_collate;
-    push @argv, ('--lc-ctype', $lc_ctype) if $lc_ctype;
-    push @argv, ('--');
-    push @argv, ('--locale-provider', $old_locale_provider) if $old_locale_provider;
-    push @argv, ('--icu-locale', $old_icu_locale) if $old_icu_locale;
-    push @argv, ('--icu-rules', $old_icu_rules) if $old_icu_rules;
-    if ($oldcontrol->{'Data page checksum version'} or (defined $data_checksums and $data_checksums == 1)) { # oldcontrol 0 = off
-        # enable data checksums if the old cluster had them
-        push @argv, ('--data-checksums');
-    } else {
-        if ($newversion >= 18 and ($method eq 'upgrade' or (defined $data_checksums and $data_checksums == 0))) {
-            # disable data checksums when they would be enabled by default (18+), but the method uses doesn't allow transitioning
-            push @argv, ('--no-data-checksums');
-        }
+    if ($newversion >= 18 and ($method eq 'upgrade' or (defined $data_checksums and $data_checksums == 0))) {
+        # disable data checksums when they would be enabled by default (18+), but the method uses doesn't allow transitioning
+        push @argv, ('--no-data-checksums');
     }
 }
 push @argv, ('--encryption-key-command', $info{config}->{encryption_key_command}) if $info{config}->{encryption_key_command}; # PostgreSQL TDE
@@ -734,8 +721,6 @@ if (!fork) {
 
     } else {
 	# pg_upgrade
-
-	use File::Temp qw(tempdir);
 
 	my $pg_upgrade = get_program_path 'pg_upgrade', $newversion;
         $pg_upgrade or error "pg_upgrade $newversion not found";
@@ -890,17 +875,10 @@ B<requiring index rebuilds after the upgrade>, or acknowledging that the
 ordering did not change using the B<ALTER COLLATION REFRESH VERSION> command.
 This step is not automated by B<pg_upgradecluster>.
 
-For pg_upgrade migrations, a target binary supporting
-B<--print-initdb-options=json> supplies the initialization settings passed to
-B<pg_createcluster>, including the old WAL segment size and checksum setting.
-Encoding and locale settings come from B<--maintenance-db>. Configuration
-copying and upgrade hooks still run before the ordinary pg_upgrade command.
-Printer discovery uses the source socket directory. An inherited C<TMPDIR>
-that the source owner cannot write or search is omitted from the printer
-child's environment, allowing PostgreSQL to use its default temporary directory.
-Older target binaries, dump migrations, explicit B<--locale>,
-B<--lc-collate>, or B<--lc-ctype> overrides, and non-ASCII settings without
-a corresponding Perl encoding codec use the existing discovery path.
+For pg_upgrade migrations, B<--print-initdb-options>, when supported by the
+target binary, supplies the matching WAL segment size and checksum setting.
+Encoding and locales still come from B<--maintenance-db> and explicit overrides.
+On failure, printer diagnostics remain under F</var/log/postgresql>.
 
 The cluster of the old version will be configured to use a previously unused
 port since the upgraded one will use the original port. The old cluster is not

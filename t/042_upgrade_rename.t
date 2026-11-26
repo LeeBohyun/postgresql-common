@@ -8,16 +8,19 @@ use PgCommon;
 
 use Test::More tests => 15 * @MAJORS;
 
+# A valid long source name must not overflow temporary log directory names.
+my $cluster = 'a' x 225;
+
 foreach my $v (@MAJORS) {
   SKIP: {
     skip "pg_upgrade not supported on $v", 15 if ($v < 9.2);
     note "PostgreSQL $v";
 
-    program_ok 0, "pg_createcluster $v main --start", 0;
-    program_ok 0, "pg_upgradecluster -m upgrade --old-bindir=$PgCommon::binroot$v/bin -v $v --rename upgr $v main", 0;
-    like_program_out 0, "pg_lsclusters -h", 0, qr/$v main 5433 down.*\n$v upgr 5432 online/;
+    program_ok 0, "pg_createcluster $v $cluster --start", 0;
+    program_ok 0, "pg_upgradecluster -m upgrade --old-bindir=$PgCommon::binroot$v/bin -v $v --rename upgr $v $cluster", 0;
+    like_program_out 0, "pg_lsclusters -h", 0, qr/$v $cluster\s+5433 down.*\n$v upgr\s+5432 online/;
 
-    program_ok 0, "pg_dropcluster $v main --stop", 0;
+    program_ok 0, "pg_dropcluster $v $cluster --stop", 0;
     program_ok 0, "pg_dropcluster $v upgr --stop", 0;
     is ((system "rm -rf /var/log/postgresql/pg_upgradecluster-$v-$v-upgr.*"), 0, 'Cleaning pg_upgrade log files');
     check_clean;
